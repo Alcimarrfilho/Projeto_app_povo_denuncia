@@ -35,19 +35,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F0F2),
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            SizedBox(
-              width: double.infinity,
-              height: 250,
-              child: Image.asset(
-                'assets/images/IMG_1830.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 250),
+
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 24),
               padding: const EdgeInsets.all(24),
@@ -100,7 +93,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ElevatedButton(
                       onPressed: _register,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEBDCF9),
+                        backgroundColor: const Color.fromARGB(
+                          255,
+                          255,
+                          254,
+                          255,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),

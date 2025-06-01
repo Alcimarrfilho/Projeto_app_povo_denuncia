@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text.trim(),
         );
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/feed');
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -35,7 +35,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F0F2), // cor de fundo pastel
+      backgroundColor: const Color.fromARGB(
+        255,
+        254,
+        255,
+        255,
+      ), // cor de fundo pastel
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -48,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 fit: BoxFit.cover,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             // Container com o formulário
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 24),

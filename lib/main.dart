@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'login_screen.dart'; // Certifique-se de que o caminho esteja correto
-// import 'register_screen.dart'; // Descomente e ajuste quando criar sua tela de cadastro
+import 'login_screen.dart';
+import 'cadastro_screen.dart';
+import 'redefinir_senha_screen.dart';
+import 'feed_screen.dart';
+import 'new_denuncia_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,16 +20,19 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Meu App',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginScreen(),
         '/home': (context) => const MyHomePage(title: 'Página Inicial'),
-        '/register':
-            (context) =>
-                const Placeholder(), // Substitua por sua tela de cadastro futuramente
+        '/register': (context) => const RegisterScreen(),
+        '/forgot_password': (context) => const RedefinirSenhaScreen(),
+        '/feed': (context) => const FeedScreen(),
+        '/new_denuncia': (context) => const NewDenunciaScreen(),
       },
     );
   }

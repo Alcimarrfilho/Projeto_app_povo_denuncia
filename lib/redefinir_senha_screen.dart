@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key});
+class RedefinirSenhaScreen extends StatefulWidget {
+  const RedefinirSenhaScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  State<RedefinirSenhaScreen> createState() => _RedefinirSenhaScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
   final _emailController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -29,19 +29,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F0F2),
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            SizedBox(
-              width: double.infinity,
-              height: 250,
-              child: Image.asset(
-                'assets/images/IMG_1830.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 300),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 24),
               padding: const EdgeInsets.all(24),
@@ -73,7 +65,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ElevatedButton(
                     onPressed: _sendResetLink,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEBDCF9),
+                      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
