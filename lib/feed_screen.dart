@@ -55,7 +55,7 @@ class _FeedScreenState extends State<FeedScreen> {
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.deepPurple,
+        selectedItemColor: const Color.fromARGB(255, 0, 0, 0),
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),

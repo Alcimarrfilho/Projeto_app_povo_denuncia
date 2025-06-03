@@ -36,6 +36,7 @@ class MyApp extends StatelessWidget {
         '/new_denuncia': (context) => const NewDenunciaScreen(),
         '/conta': (context) => const ContaScreen(),
         '/mapa': (context) => const MapaScreen(),
+        '/minhas-denuncias': (context) => const MinhasDenuncias(),
       },
     );
   }
