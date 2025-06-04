@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NewDenunciaScreen extends StatefulWidget {
   const NewDenunciaScreen({super.key});
@@ -12,14 +13,35 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
   final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
 
-  void _enviarDenuncia() {
+  Future<void> _enviarDenuncia() async {
     if (_formKey.currentState!.validate()) {
-      // Aqui você pode salvar no banco de dados ou Firebase
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Denúncia enviada com sucesso!')),
-      );
-      Navigator.pop(context); // Volta para a tela anterior
+      try {
+        await FirebaseFirestore.instance.collection('denuncias').add({
+          'titulo': _tituloController.text.trim(),
+          'descricao': _descricaoController.text.trim(),
+          'data':
+              FieldValue.serverTimestamp(), // importante para ordenação no feed
+          'status': 'Pendente', // você pode usar isso na aba de mensagens
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Denúncia enviada com sucesso!')),
+        );
+
+        Navigator.pop(context); // volta para o feed
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao enviar denúncia: $e')));
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _tituloController.dispose();
+    _descricaoController.dispose();
+    super.dispose();
   }
 
   @override

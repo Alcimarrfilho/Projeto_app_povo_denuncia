@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class MinhasDenunciasScreen extends StatelessWidget {
-  const MinhasDenunciasScreen({super.key});
+class MinhasDenuncias extends StatelessWidget {
+  const MinhasDenuncias({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:projeto_app_povo_denuncia/status_denuncia.dart';
 import 'firebase_options.dart';
 import 'login_screen.dart';
 import 'cadastro_screen.dart';
@@ -7,7 +8,7 @@ import 'redefinir_senha_screen.dart';
 import 'feed_screen.dart';
 import 'new_denuncia_screen.dart';
 import 'conta_screen.dart';
-import 'mapa_screen.dart';
+import 'minhas_denuncias.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,11 +33,11 @@ class MyApp extends StatelessWidget {
         '/': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/forgot_password': (context) => const RedefinirSenhaScreen(),
-        '/feed': (context) => const FeedScreen(),
+        '/feed': (context) => FeedScreen(),
         '/new_denuncia': (context) => const NewDenunciaScreen(),
         '/conta': (context) => const ContaScreen(),
-        '/mapa': (context) => const MapaScreen(),
-        '/minhas-denuncias': (context) => const MinhasDenuncias(),
+        '/status_denuncia': (context) => const StatusDenuncia(),
+        '/minhas_denuncias': (context) => const MinhasDenuncias(),
       },
     );
   }
