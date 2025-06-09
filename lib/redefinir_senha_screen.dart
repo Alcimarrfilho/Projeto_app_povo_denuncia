@@ -15,11 +15,13 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
   Future<void> _sendResetLink() async {
     try {
       await _auth.sendPasswordResetEmail(email: _emailController.text.trim());
+      if (!mounted) return; // Verifica se o widget ainda está na árvore
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('E-mail de redefinição enviado!')),
       );
       Navigator.pop(context);
     } catch (e) {
+      if (!mounted) return; // Verifica novamente
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Erro: ${e.toString()}')));

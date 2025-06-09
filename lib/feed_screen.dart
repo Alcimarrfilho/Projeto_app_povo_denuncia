@@ -53,11 +53,12 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
               TextButton(
                 onPressed: () async {
+                  final navigator = Navigator.of(context);
                   await FirebaseFirestore.instance
                       .collection('denuncias')
                       .doc(denuncia.id)
                       .delete();
-                  Navigator.pop(context);
+                  navigator.pop();
                 },
                 child: const Text('Apagar'),
               ),
@@ -74,7 +75,6 @@ class _FeedScreenState extends State<FeedScreen> {
     final data = doc.data() as Map<String, dynamic>;
     final titulo = data['titulo'] ?? '';
     final descricao = data['descricao'] ?? '';
-    final status = data['status'] ?? 'Pendente';
     final dataHora = (data['data'] as Timestamp?)?.toDate();
 
     return GestureDetector(
