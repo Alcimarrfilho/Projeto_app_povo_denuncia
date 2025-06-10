@@ -14,6 +14,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -23,10 +30,38 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/feed');
+      } on FirebaseAuthException catch (e) {
+        if (!mounted) return;
+
+        String message;
+
+        if (e.code == 'user-not-found' ||
+            e.code == 'wrong-password' ||
+            e.code == 'invalid-email' ||
+            e.code == 'user-disabled') {
+          message = 'Login ou senha incorretos.';
+        } else if (e.code == 'network-request-failed') {
+          message =
+              'Erro de conexão. Verifique sua internet e tente novamente.';
+        } else {
+          print('Erro de autenticação Firebase: ${e.code} - ${e.message}');
+          message = 'Ocorreu um erro. Tente novamente.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: const Color.fromARGB(255, 248, 28, 12),
+          ),
+        );
       } catch (e) {
         if (!mounted) return;
+        print('Erro desconhecido durante o login: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao fazer login: ${e.toString()}')),
+          SnackBar(
+            content: Text('Ocorreu um erro inesperado: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
