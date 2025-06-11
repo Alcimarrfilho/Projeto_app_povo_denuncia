@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
         '/feed': (context) => FeedScreen(),
         '/new_denuncia': (context) => const NewDenunciaScreen(),
         '/conta': (context) => const ContaScreen(),
-        '/status_denuncia': (context) => const StatusDenuncia(),
+        '/status_denuncia': (context) => const StatusDenunciaScreen(),
         '/minhas_denuncias': (context) => const MinhasDenuncias(),
       },
     );

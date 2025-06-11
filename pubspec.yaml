@@ -16,10 +16,10 @@ dependencies:
   firebase_auth: ^4.17.6
   cloud_firestore: ^4.17.4
   firebase_storage: ^11.6.0
-  intl: ^0.18.1
   image_picker: ^1.0.4
   geolocator: ^10.1.0
   permission_handler: ^11.3.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
