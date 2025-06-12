@@ -11,6 +11,10 @@
         android:label="projeto_app_povo_denuncia"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <meta-data android:name="com.google.android.geo.API_KEY"
+        android:value="AIzaSyB_1234567890abcdefghijklmnopqrstuvwxyz"/>
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"

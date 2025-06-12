@@ -23,7 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           password: _passwordController.text.trim(),
         );
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/feed');
+        Navigator.pushReplacementNamed(context, '/login');
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao cadastrar: ${e.toString()}')),

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:projeto_app_povo_denuncia/status_denuncia.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'login_screen.dart';
-import 'cadastro_screen.dart';
+import 'register_screen.dart';
 import 'redefinir_senha_screen.dart';
 import 'feed_screen.dart';
 import 'new_denuncia_screen.dart';
