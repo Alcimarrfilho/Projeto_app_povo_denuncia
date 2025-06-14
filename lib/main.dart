@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:projeto_app_povo_denuncia/status_denuncia.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:projeto_app_povo_denuncia/minhas_denuncias.dart';
 import 'firebase_options.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
@@ -9,7 +10,6 @@ import 'redefinir_senha_screen.dart';
 import 'feed_screen.dart';
 import 'new_denuncia_screen.dart';
 import 'conta_screen.dart';
-import 'minhas_denuncias.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,16 +29,34 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      initialRoute: '/',
+      home: StreamBuilder<User?>(
+        stream:
+            FirebaseAuth.instance
+                .authStateChanges(), // Escuta mudanças no estado de autenticação
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // Mostra um indicador de carregamento enquanto verifica o estado
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (snapshot.hasData) {
+            // Se o usuário está logado, vai para a tela principal (Feed)
+            return const FeedScreen();
+          } else {
+            // Se o usuário não está logado, vai para a tela de Login
+            return const LoginScreen();
+          }
+        },
+      ),
       routes: {
-        '/': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/forgot_password': (context) => const RedefinirSenhaScreen(),
         '/feed': (context) => FeedScreen(),
-        '/new_denuncia': (context) => const NewDenunciaScreen(),
+        '/report': (context) => const NewDenunciaScreen(),
         '/conta': (context) => const ContaScreen(),
         '/status_denuncia': (context) => const StatusDenunciaScreen(),
-        '/minhas_denuncias': (context) => const MinhasDenuncias(),
+        '/ver_editar_denuncia': (context) => const MinhasDenuncias(),
       },
     );
   }

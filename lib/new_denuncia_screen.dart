@@ -4,7 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Importação essencial para o Firebase Auth
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart'; // Importe o Google Maps
 
 class NewDenunciaScreen extends StatefulWidget {
   const NewDenunciaScreen({super.key});
@@ -19,10 +20,15 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
   final _descricaoController = TextEditingController();
 
   File? _imagem;
-  // REMOVIDO: String? _imagemUrl; // Esta variável não é mais necessária aqui
-  Position? _localizacao;
+  Position? _localizacaoAtual; // Posição obtida inicialmente pelo GPS
+  LatLng? _localizacaoSelecionadaNoMapa; // Posição final selecionada no mapa
+
+  GoogleMapController? _mapController; // Controlador do mapa
+  bool _mostrarMapa = false; // Controle de visibilidade do mapa
+  Set<Marker> _marcadores = {}; // Conjunto de marcadores no mapa
+
   String?
-  _tipoDenunciaSelecionado; // <--- Variável de estado para o tipo de denúncia
+  _tipoDenunciaSelecionado; // Variável de estado para o tipo de denúncia
 
   // Lista de tipos de denúncia para o Dropdown
   final List<String> _tiposDenuncia = [
@@ -37,7 +43,52 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
   void dispose() {
     _tituloController.dispose();
     _descricaoController.dispose();
+    _mapController?.dispose(); // Descarte o controlador do mapa
     super.dispose();
+  }
+
+  // Função chamada quando o mapa é criado
+  void _onMapCreated(GoogleMapController controller) {
+    _mapController = controller;
+    // Se já tiver uma localização atual, move a câmera para ela e adiciona o marcador
+    if (_localizacaoAtual != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLng(
+          LatLng(_localizacaoAtual!.latitude, _localizacaoAtual!.longitude),
+        ),
+      );
+      _adicionarMarcador(
+        LatLng(_localizacaoAtual!.latitude, _localizacaoAtual!.longitude),
+      );
+    }
+  }
+
+  // Adiciona ou move o marcador no mapa
+  void _adicionarMarcador(LatLng position) {
+    setState(() {
+      _marcadores.clear(); // Limpa marcadores anteriores
+      _marcadores.add(
+        Marker(
+          markerId: const MarkerId('denunciaLocation'),
+          position: position,
+          draggable: true, // Permite arrastar o marcador
+          onDragEnd: (newPosition) {
+            // Atualiza a localização selecionada quando o marcador é arrastado
+            setState(() {
+              _localizacaoSelecionadaNoMapa = newPosition;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Localização do marcador atualizada!'),
+                backgroundColor: Colors.blueAccent,
+              ),
+            );
+          },
+        ),
+      );
+      _localizacaoSelecionadaNoMapa =
+          position; // Atualiza a localização selecionada
+    });
   }
 
   Future<void> _tirarFoto() async {
@@ -51,13 +102,13 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
     }
   }
 
-  Future<void> _pegarLocalizacao() async {
-    // Adicionado if (!mounted) return; para evitar erros de contexto
+  // Função para obter localização atual e exibir o mapa
+  Future<void> _pegarLocalizacaoEExibirMapa() async {
     if (!mounted) return;
 
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      if (!mounted) return; // Verificação adicional de mounted
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ative a localização no dispositivo')),
       );
@@ -67,11 +118,11 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      if (!mounted) return; // Verificação adicional de mounted
+      if (!mounted) return;
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        if (!mounted) return; // Verificação adicional de mounted
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -88,15 +139,31 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
         desiredAccuracy:
             LocationAccuracy.high, // Maior precisão para localização
       );
-      if (!mounted) return; // Verificação adicional de mounted
+      if (!mounted) return;
       setState(() {
-        _localizacao = position;
+        _localizacaoAtual = position; // Armazena a localização inicial do GPS
+        _localizacaoSelecionadaNoMapa = LatLng(
+          position.latitude,
+          position.longitude,
+        ); // Define a localização inicial no mapa
+        _mostrarMapa = true; // Exibe o mapa!
       });
+      // Se o mapa já estiver criado, move a câmera para a localização
+      if (_mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
+        );
+      }
+      _adicionarMarcador(
+        LatLng(position.latitude, position.longitude),
+      ); // Adiciona marcador na localização inicial
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Localização obtida com sucesso!')),
+        const SnackBar(
+          content: Text('Localização obtida. Arraste o marcador para ajustar!'),
+        ),
       );
     } catch (e) {
-      if (!mounted) return; // Verificação adicional de mounted
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao obter localização: ${e.toString()}')),
       );
@@ -104,15 +171,36 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
     }
   }
 
+  // Função para confirmar a localização selecionada no mapa
+  void _confirmarLocalizacaoNoMapa() {
+    if (_localizacaoSelecionadaNoMapa != null) {
+      setState(() {
+        _mostrarMapa = false; // Esconde o mapa após a confirmação
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Localização confirmada!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhuma localização selecionada no mapa.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
   Future<void> _enviarDenuncia() async {
-    // Adicionado if (!mounted) return; no início
     if (!mounted) return;
 
     if (_formKey.currentState!.validate()) {
       // Validação para o tipo de denúncia
       if (_tipoDenunciaSelecionado == null ||
           _tipoDenunciaSelecionado!.isEmpty) {
-        if (!mounted) return; // Verificação adicional de mounted
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Por favor, selecione o tipo de denúncia.'),
@@ -124,7 +212,7 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
       // Obter o usuário atual
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        if (!mounted) return; // Verificação adicional de mounted
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -132,8 +220,19 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
             ),
           ),
         );
-        // Opcional: Redirecionar para tela de login, se o fluxo do seu app permitir
-        // Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      // Validação final da localização: certifica-se de que uma localização foi selecionada no mapa
+      if (_localizacaoSelecionadaNoMapa == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Por favor, obtenha e selecione a localização no mapa.',
+            ),
+          ),
+        );
         return;
       }
 
@@ -147,29 +246,30 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
           imagemUrl = await ref.getDownloadURL();
         }
 
+        // Salva a denúncia no Firestore, usando a localização selecionada no mapa
         await FirebaseFirestore.instance.collection('denuncias').add({
           'titulo': _tituloController.text.trim(),
           'descricao': _descricaoController.text.trim(),
-          'tipoDenuncia':
-              _tipoDenunciaSelecionado, // Salvando o tipo de denúncia
+          'tipoDenuncia': _tipoDenunciaSelecionado,
           'data': FieldValue.serverTimestamp(),
           'status': 'Pendente',
           'imagemUrl': imagemUrl,
-          'localizacao':
-              _localizacao != null
-                  ? {
-                    'latitude': _localizacao!.latitude,
-                    'longitude': _localizacao!.longitude,
-                  }
-                  : null,
-          'userId': user.uid, // Salvando o ID do usuário
+          'localizacao': {
+            // Usamos a localização Latitude/Longitude do mapa
+            'latitude': _localizacaoSelecionadaNoMapa!.latitude,
+            'longitude': _localizacaoSelecionadaNoMapa!.longitude,
+          },
+          'userId': user.uid, // Salva o ID do usuário que fez a denúncia
         });
 
         if (!mounted) return; // Verificação adicional de mounted
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Denúncia enviada com sucesso!')),
         );
-        Navigator.pop(context); // Volta para a tela anterior após o envio
+        Navigator.pushReplacementNamed(
+          context,
+          '/feed',
+        ); // Volta para a tela feed após o envio
       } catch (e) {
         if (!mounted) return; // Verificação adicional de mounted
         print(
@@ -226,7 +326,6 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              // Dropdown para Tipo de Denúncia
               DropdownButtonFormField<String>(
                 value: _tipoDenunciaSelecionado,
                 decoration: const InputDecoration(
@@ -279,17 +378,70 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
               if (_imagem != null)
                 Image.file(_imagem!, height: 150, fit: BoxFit.cover),
               const SizedBox(height: 16),
+              // Botão para obter localização e exibir o mapa
               ElevatedButton.icon(
-                onPressed: _pegarLocalizacao,
+                onPressed:
+                    _pegarLocalizacaoEExibirMapa, // Função que agora exibe o mapa
                 icon: const Icon(Icons.location_on),
-                label: const Text('Usar minha localização'),
+                label: const Text(
+                  'Usar minha localização e selecionar no mapa',
+                ), // Novo texto do botão
               ),
-              if (_localizacao != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Localização: (${_localizacao!.latitude.toStringAsFixed(5)}, ${_localizacao!.longitude.toStringAsFixed(5)})',
-                  ),
+              const SizedBox(height: 16),
+              // Exibe o mapa condicionalmente se _mostrarMapa for true
+              if (_mostrarMapa) // A visibilidade do mapa é controlada por esta variável
+                Column(
+                  children: [
+                    Container(
+                      height: 300, // Altura fixa para o mapa
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: GoogleMap(
+                        // O widget GoogleMap é renderizado aqui
+                        onMapCreated:
+                            _onMapCreated, // Callback quando o mapa é inicializado
+                        initialCameraPosition: CameraPosition(
+                          target:
+                              _localizacaoAtual != null
+                                  ? LatLng(
+                                    _localizacaoAtual!.latitude,
+                                    _localizacaoAtual!.longitude,
+                                  )
+                                  : const LatLng(
+                                    -2.5312,
+                                    -44.2958,
+                                  ), // Posição inicial (ex: São Luís, MA) se GPS não disponível
+                          zoom: 15.0,
+                        ),
+                        markers: _marcadores, // Exibe o marcador arrastável
+                        myLocationEnabled:
+                            true, // Habilita o ponto azul da localização do usuário
+                        myLocationButtonEnabled:
+                            true, // Botão para centralizar na localização do usuário
+                        onTap:
+                            _adicionarMarcador, // Permite tocar no mapa para mover o marcador
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Exibe as coordenadas selecionadas no mapa
+                    if (_localizacaoSelecionadaNoMapa != null)
+                      Text(
+                        'Localização Selecionada: (${_localizacaoSelecionadaNoMapa!.latitude.toStringAsFixed(5)}, ${_localizacaoSelecionadaNoMapa!.longitude.toStringAsFixed(5)})',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    const SizedBox(height: 16),
+                    // Botão para confirmar a localização selecionada no mapa
+                    ElevatedButton(
+                      onPressed: _confirmarLocalizacaoNoMapa,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Confirmar Localização no Mapa'),
+                    ),
+                  ],
                 ),
               const SizedBox(height: 24),
               Row(
