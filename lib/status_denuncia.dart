@@ -1,7 +1,197 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // Importação do pacote intl para formatação de data
+import 'package:intl/intl.dart';
+import 'dart:developer'; // Importado para usar 'log' no lugar de 'debugPrint'
+
+// Enumeração para os possíveis status da denúncia
+enum DenunciaStatus {
+  pendente,
+  emAnalise,
+  resolvido,
+  rejeitado,
+  desconhecido, // Para qualquer status não mapeado
+}
+
+// Extensão para mapear strings de status para o enum e cores
+extension DenunciaStatusExtension on DenunciaStatus {
+  String get name {
+    // Usando if-else if para evitar "unreachable_switch_default" se todos os casos forem explicitamente tratados
+    if (this == DenunciaStatus.pendente) {
+      return 'Pendente';
+    } else if (this == DenunciaStatus.emAnalise) {
+      return 'Em Análise';
+    } else if (this == DenunciaStatus.resolvido) {
+      return 'Resolvido';
+    } else if (this == DenunciaStatus.rejeitado) {
+      return 'Rejeitado';
+    } else {
+      // Cobre DenunciaStatus.desconhecido
+      return 'Desconhecido';
+    }
+  }
+
+  Color get color {
+    if (this == DenunciaStatus.pendente) {
+      return Colors.orange.shade400;
+    } else if (this == DenunciaStatus.emAnalise) {
+      return Colors.blue.shade400;
+    } else if (this == DenunciaStatus.resolvido) {
+      return Colors.green.shade400;
+    } else if (this == DenunciaStatus.rejeitado) {
+      return Colors.red.shade400;
+    } else {
+      // Cobre DenunciaStatus.desconhecido
+      return Colors.grey.shade400;
+    }
+  }
+
+  // Mapeia uma string de status para o enum correspondente (método estático)
+  static DenunciaStatus fromString(String status) {
+    switch (status.toLowerCase()) {
+      case 'pendente':
+        return DenunciaStatus.pendente;
+      case 'em análise':
+        return DenunciaStatus.emAnalise;
+      case 'resolvido':
+        return DenunciaStatus.resolvido;
+      case 'rejeitado':
+        return DenunciaStatus.rejeitado;
+      default:
+        return DenunciaStatus.desconhecido;
+    }
+  }
+}
+
+// Widget para exibir a timeline do status
+class DenunciaStatusTimeline extends StatelessWidget {
+  final DenunciaStatus currentStatus;
+
+  const DenunciaStatusTimeline({super.key, required this.currentStatus});
+
+  // Define os passos da timeline
+  final List<DenunciaStatus> statusSteps = const [
+    DenunciaStatus.pendente,
+    DenunciaStatus.emAnalise,
+    DenunciaStatus.resolvido,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    // Determine o índice do status atual
+    int currentIndex = statusSteps.indexOf(currentStatus);
+    // Para status rejeitado, pode ser um ponto final, não necessariamente parte da linha linear.
+    bool isRejected = currentStatus == DenunciaStatus.rejeitado;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(statusSteps.length, (index) {
+              bool isActive = index <= currentIndex;
+              DenunciaStatus stepStatus = statusSteps[index];
+
+              return Expanded(
+                child: Column(
+                  children: [
+                    // Círculo do passo
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color:
+                            isActive ? stepStatus.color : Colors.grey.shade300,
+                        border: Border.all(
+                          color:
+                              isActive
+                                  ? stepStatus.color
+                                  : Colors.grey.shade400,
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          _getIconForStatus(
+                            stepStatus,
+                          ), // Ícone para cada status
+                          color: isActive ? Colors.white : Colors.grey.shade600,
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Nome do status
+                    Text(
+                      stepStatus.name,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            isActive ? stepStatus.color : Colors.grey.shade600,
+                      ),
+                    ),
+                    // Linha conectora (exceto para o último elemento)
+                    if (index < statusSteps.length - 1)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: Container(
+                          height: 2,
+                          color:
+                              isActive
+                                  ? stepStatus.color
+                                  : Colors.grey.shade300,
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }),
+          ),
+          // Se for rejeitado, um selo separado pode ser exibido abaixo da linha principal
+          if (isRejected)
+            Padding(
+              padding: const EdgeInsets.only(top: 10.0),
+              child: Chip(
+                label: Text(
+                  currentStatus.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                backgroundColor: currentStatus.color,
+                avatar: Icon(
+                  _getIconForStatus(currentStatus),
+                  color: Colors.white,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Função auxiliar para obter ícones baseados no status
+  IconData _getIconForStatus(DenunciaStatus status) {
+    switch (status) {
+      case DenunciaStatus.pendente:
+        return Icons.hourglass_empty;
+      case DenunciaStatus.emAnalise:
+        return Icons.search;
+      case DenunciaStatus.resolvido:
+        return Icons.check_circle;
+      case DenunciaStatus.rejeitado:
+        return Icons.cancel;
+      case DenunciaStatus.desconhecido:
+      default:
+        return Icons.help_outline;
+    }
+  }
+}
 
 class StatusDenunciaScreen extends StatefulWidget {
   const StatusDenunciaScreen({super.key});
@@ -23,7 +213,6 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
     if (_currentUser == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          // Garante que o widget ainda está montado antes de mostrar o SnackBar
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
@@ -41,20 +230,18 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
   @override
   Widget build(BuildContext context) {
     // Exibe um CircularProgressIndicator se não houver usuário logado ainda
-    // ou se estiver aguardando o redirecionamento inicial
     if (_currentUser == null) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('Status da Denúncia'),
-          backgroundColor: Color.fromARGB(255, 240, 71, 4),
+          title: const Text('Status da Denúncia'),
+          backgroundColor: const Color.fromARGB(255, 240, 71, 4),
           foregroundColor: Colors.white,
         ),
-        body: Center(child: CircularProgressIndicator()),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      // Removido 'const' do construtor da AppBar aqui - Esta AppBar também não precisa de const
       appBar: AppBar(
         title: const Text('Status da Denúncia'),
         backgroundColor: const Color.fromARGB(255, 240, 71, 4),
@@ -75,7 +262,9 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
           }
 
           if (snapshot.hasError) {
-            // print('Erro ao carregar denúncias: ${snapshot.error}'); // Este print gera aviso 'avoid_print'
+            log(
+              'Erro ao carregar denúncias: ${snapshot.error}',
+            ); // Substituído debugPrint por log
             return Center(
               child: Text('Erro ao carregar denúncias: ${snapshot.error}'),
             );
@@ -100,9 +289,10 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
               // Extrai os dados da denúncia, fornecendo valores padrão se forem nulos
               String titulo = data['titulo'] ?? 'Sem Título';
               String descricao = data['descricao'] ?? 'Sem Descrição';
-              String status = data['status'] ?? 'Desconhecido';
+              String statusString = data['status'] ?? 'Desconhecido';
               String tipoDenuncia = data['tipoDenuncia'] ?? 'Não especificado';
-              String? imagemUrl = data['imagemUrl'];
+              String? imagemUrl =
+                  data['imagemUrl']; // **IMAGEMURL: Aqui a variável está correta.**
               Timestamp? timestamp = data['data'] as Timestamp?;
               String dataFormatada =
                   timestamp != null
@@ -121,25 +311,9 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
                     'Lat: ${latitude.toStringAsFixed(4)}, Long: ${longitude.toStringAsFixed(4)}';
               }
 
-              // Determina a cor do status para melhor visualização
-              Color statusColor;
-              switch (status) {
-                case 'Pendente':
-                  statusColor = Colors.orange;
-                  break;
-                case 'Em Análise':
-                  statusColor = Colors.blue;
-                  break;
-                case 'Resolvido':
-                  statusColor = Colors.green;
-                  break;
-                case 'Rejeitado':
-                  statusColor = Colors.red;
-                  break;
-                default:
-                  statusColor =
-                      Colors.grey; // Cor padrão para status desconhecido
-              }
+              // Chamar fromString a partir da extensão, não diretamente do enum.
+              DenunciaStatus currentDenunciaStatus =
+                  DenunciaStatusExtension.fromString(statusString);
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 16.0),
@@ -152,92 +326,151 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Título da Denúncia (na parte mais superior do card)
+                      Text(
+                        titulo,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Conteúdo principal: Imagem à Esquerda, Detalhes e Status à Direita
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start, // Alinha itens ao topo da Row
                         children: [
-                          Flexible(
-                            child: Text(
-                              titulo,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                          // Imagem à esquerda (reduzida)
+                          if (imagemUrl != null &&
+                              imagemUrl
+                                  .isNotEmpty) // **IMAGEMURL: Correção aqui**
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8.0),
+                              child: Image.network(
+                                imagemUrl, // **IMAGEMURL: Correção aqui**
+                                height: 100, // Imagem reduzida
+                                width: 100, // Imagem reduzida
+                                fit: BoxFit.cover,
+                                loadingBuilder: (
+                                  context,
+                                  child,
+                                  loadingProgress,
+                                ) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    height: 100,
+                                    width: 100,
+                                    color: Colors.grey[200],
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        value:
+                                            loadingProgress
+                                                        .expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                                : null,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    height: 100,
+                                    width: 100,
+                                    color: Colors.grey[300],
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey,
+                                        size: 50,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                              overflow:
-                                  TextOverflow.ellipsis, // Para títulos longos
                             ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              status,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
+                          if (imagemUrl != null && imagemUrl.isNotEmpty)
+                            const SizedBox(
+                              width: 16,
+                            ), // Espaço entre imagem e texto/status
+                          // Detalhes e Status Chip (à direita da imagem)
+                          Expanded(
+                            // Ocupa o restante do espaço horizontal
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Tipo de Denúncia e Status Chip na mesma linha
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Tipo: $tipoDenuncia',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    // Selo de status (chip) - à direita
+                                    Chip(
+                                      label: Text(
+                                        currentDenunciaStatus.name,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      backgroundColor:
+                                          currentDenunciaStatus.color,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  dataFormatada, // Data/Hora da denúncia
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  descricao,
+                                  style: const TextStyle(fontSize: 15),
+                                  maxLines: 4, // Limita a descrição
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Localização: $localizacaoStr',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tipo: $tipoDenuncia', // Exibe o tipo de denúncia
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        descricao,
-                        style: const TextStyle(fontSize: 15),
-                        maxLines:
-                            3, // Limita a descrição para não ficar muito grande
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      // Exibe a imagem se houver uma URL válida
-                      if (imagemUrl != null && imagemUrl.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
-                          child: Image.network(
-                            imagemUrl,
-                            height: 150,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            // Tratamento de erro caso a imagem não carregue
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.broken_image,
-                                size: 80,
-                                color: Colors.grey,
-                              );
-                            },
-                          ),
-                        ),
-                      if (imagemUrl != null && imagemUrl.isNotEmpty)
-                        const SizedBox(height: 8),
-                      Text(
-                        'Localização: $localizacaoStr',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Enviada em: $dataFormatada',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.black54,
-                        ),
+                      const SizedBox(height: 16),
+                      const Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: Colors.grey,
+                      ), // Divisor visual
+                      // Timeline de Status (parte inferior do card)
+                      DenunciaStatusTimeline(
+                        currentStatus: currentDenunciaStatus,
                       ),
                     ],
                   ),
