@@ -383,9 +383,7 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
                 onPressed:
                     _pegarLocalizacaoEExibirMapa, // Função que agora exibe o mapa
                 icon: const Icon(Icons.location_on),
-                label: const Text(
-                  'Usar minha localização e selecionar no mapa',
-                ), // Novo texto do botão
+                label: const Text(' Selecionar no mapa'), // Novo texto do botão
               ),
               const SizedBox(height: 16),
               // Exibe o mapa condicionalmente se _mostrarMapa for true

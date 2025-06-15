@@ -1,32 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
-import 'dart:developer'; // Importado para usar 'log' no lugar de 'debugPrint'
 
-// Enumeração para os possíveis status da denúncia
-enum DenunciaStatus {
-  pendente,
-  emAnalise,
-  resolvido,
-  rejeitado,
-  desconhecido, // Para qualquer status não mapeado
-}
+enum DenunciaStatus { pendente, emAnalise, resolvido, rejeitado, desconhecido }
 
 // Extensão para mapear strings de status para o enum e cores
 extension DenunciaStatusExtension on DenunciaStatus {
   String get name {
-    // Usando if-else if para evitar "unreachable_switch_default" se todos os casos forem explicitamente tratados
     if (this == DenunciaStatus.pendente) {
-      return 'Pendente';
-    } else if (this == DenunciaStatus.emAnalise) {
       return 'Em Análise';
+    } else if (this == DenunciaStatus.emAnalise) {
+      return 'No Local';
     } else if (this == DenunciaStatus.resolvido) {
       return 'Resolvido';
     } else if (this == DenunciaStatus.rejeitado) {
       return 'Rejeitado';
     } else {
-      // Cobre DenunciaStatus.desconhecido
       return 'Desconhecido';
     }
   }
@@ -35,18 +24,16 @@ extension DenunciaStatusExtension on DenunciaStatus {
     if (this == DenunciaStatus.pendente) {
       return Colors.orange.shade400;
     } else if (this == DenunciaStatus.emAnalise) {
-      return Colors.blue.shade400;
+      return Colors.orange.shade400;
     } else if (this == DenunciaStatus.resolvido) {
       return Colors.green.shade400;
     } else if (this == DenunciaStatus.rejeitado) {
       return Colors.red.shade400;
     } else {
-      // Cobre DenunciaStatus.desconhecido
       return Colors.grey.shade400;
     }
   }
 
-  // Mapeia uma string de status para o enum correspondente (método estático)
   static DenunciaStatus fromString(String status) {
     switch (status.toLowerCase()) {
       case 'pendente':
@@ -78,117 +65,130 @@ class DenunciaStatusTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine o índice do status atual
     int currentIndex = statusSteps.indexOf(currentStatus);
-    // Para status rejeitado, pode ser um ponto final, não necessariamente parte da linha linear.
     bool isRejected = currentStatus == DenunciaStatus.rejeitado;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(statusSteps.length, (index) {
-              bool isActive = index <= currentIndex;
-              DenunciaStatus stepStatus = statusSteps[index];
-
-              return Expanded(
-                child: Column(
-                  children: [
-                    // Círculo do passo
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color:
-                            isActive ? stepStatus.color : Colors.grey.shade300,
-                        border: Border.all(
-                          color:
-                              isActive
-                                  ? stepStatus.color
-                                  : Colors.grey.shade400,
-                          width: 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          _getIconForStatus(
-                            stepStatus,
-                          ), // Ícone para cada status
-                          color: isActive ? Colors.white : Colors.grey.shade600,
-                          size: 14,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    // Nome do status
-                    Text(
-                      stepStatus.name,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            isActive ? stepStatus.color : Colors.grey.shade600,
-                      ),
-                    ),
-                    // Linha conectora (exceto para o último elemento)
-                    if (index < statusSteps.length - 1)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: Container(
-                          height: 2,
-                          color:
-                              isActive
-                                  ? stepStatus.color
-                                  : Colors.grey.shade300,
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            }),
-          ),
-          // Se for rejeitado, um selo separado pode ser exibido abaixo da linha principal
-          if (isRejected)
-            Padding(
-              padding: const EdgeInsets.only(top: 10.0),
-              child: Chip(
-                label: Text(
-                  currentStatus.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+    return Column(
+      children: [
+        // 1. Linha de Ícones e Nomes (Parte superior, agrupados verticalmente)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(statusSteps.length, (index) {
+            bool isActive = index <= currentIndex;
+            DenunciaStatus stepStatus = statusSteps[index];
+            return Expanded(
+              child: Column(
+                // Agrupa Ícone e Nome para cada passo
+                children: [
+                  Icon(
+                    _getIconForStatus(stepStatus), // Ícone para cada status
+                    color:
+                        isActive
+                            ? Colors.orange.shade800
+                            : Colors.grey.shade600, // Cor do ícone
+                    size: 20, // Tamanho do ícone
                   ),
-                ),
-                backgroundColor: currentStatus.color,
-                avatar: Icon(
-                  _getIconForStatus(currentStatus),
+                  const SizedBox(height: 4), // Espaço entre ícone e nome
+                  Text(
+                    stepStatus.name, // Nome da extensão
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          isActive
+                              ? Colors.orange.shade800
+                              : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
+        const SizedBox(
+          height: 8,
+        ), // Espaço entre os ícones/nomes e a linha/pontos
+
+        Stack(
+          alignment: Alignment.center, // Centraliza os filhos da Stack
+          children: [
+            // A linha horizontal contínua laranja
+            Container(
+              height: 2,
+              color: Colors.orange.shade400,
+              margin: const EdgeInsets.symmetric(
+                horizontal: 10.0,
+              ), // Margem para não encostar nas bordas
+              width:
+                  double
+                      .infinity, // Garante que a linha ocupe toda a largura disponível
+            ),
+            // Linha de pontos circulares (posicionados sobre a linha)
+            Row(
+              mainAxisAlignment:
+                  MainAxisAlignment
+                      .spaceAround, // Distribui os pontos uniformemente
+              children: List.generate(statusSteps.length, (index) {
+                bool isActive = index <= currentIndex;
+                return Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color:
+                        isActive
+                            ? Colors.orange.shade400
+                            : Colors.grey.shade300,
+                    border: Border.all(
+                      color:
+                          isActive
+                              ? Colors.orange.shade600
+                              : Colors.grey.shade400,
+                      width: 1,
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
+        if (isRejected)
+          Padding(
+            padding: const EdgeInsets.only(top: 10.0),
+            child: Chip(
+              label: Text(
+                currentStatus.name,
+                style: const TextStyle(
                   color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+              backgroundColor: currentStatus.color,
+              avatar: Icon(
+                _getIconForStatus(currentStatus),
+                color: Colors.white,
+              ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 
-  // Função auxiliar para obter ícones baseados no status
+  // Função auxiliar para obter ícones baseados no status (usada para os ícones e para o chip rejeitado)
   IconData _getIconForStatus(DenunciaStatus status) {
     switch (status) {
       case DenunciaStatus.pendente:
-        return Icons.hourglass_empty;
-      case DenunciaStatus.emAnalise:
         return Icons.search;
+      case DenunciaStatus.emAnalise:
+        return Icons.location_on;
       case DenunciaStatus.resolvido:
         return Icons.check_circle;
       case DenunciaStatus.rejeitado:
         return Icons.cancel;
       case DenunciaStatus.desconhecido:
-      default:
-        return Icons.help_outline;
+        return Icons
+            .help_outline; // Removido o 'default' para evitar advertência
     }
   }
 }
@@ -202,14 +202,13 @@ class StatusDenunciaScreen extends StatefulWidget {
 
 class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  User? _currentUser; // Variável para armazenar o usuário logado
+  User? _currentUser;
 
   @override
   void initState() {
     super.initState();
-    _currentUser = _auth.currentUser; // Obtém o usuário atual ao iniciar a tela
+    _currentUser = _auth.currentUser;
 
-    // Se não houver usuário logado, exibe uma mensagem e pode redirecionar
     if (_currentUser == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -220,8 +219,6 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
               ),
             ),
           );
-          // Opcional: Descomente a linha abaixo para redirecionar para a tela de login
-          // Navigator.pushReplacementNamed(context, '/login');
         }
       });
     }
@@ -229,7 +226,6 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Exibe um CircularProgressIndicator se não houver usuário logado ainda
     if (_currentUser == null) {
       return Scaffold(
         appBar: AppBar(
@@ -248,8 +244,6 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        // Stream para buscar denúncias onde 'userId' é igual ao ID do usuário logado
-        // Ordena pelas denúncias mais recentes ('data' descendente)
         stream:
             FirebaseFirestore.instance
                 .collection('denuncias')
@@ -262,9 +256,7 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
           }
 
           if (snapshot.hasError) {
-            log(
-              'Erro ao carregar denúncias: ${snapshot.error}',
-            ); // Substituído debugPrint por log
+            // log('Erro ao carregar denúncias: ${snapshot.error}'); // Removido
             return Center(
               child: Text('Erro ao carregar denúncias: ${snapshot.error}'),
             );
@@ -276,42 +268,18 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
             );
           }
 
-          // Se há dados, constrói a lista de denúncias
           return ListView.builder(
             padding: const EdgeInsets.all(16.0),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               var denuncia = snapshot.data!.docs[index];
-              // Garante que os dados são um Map<String, dynamic>
               Map<String, dynamic> data =
                   denuncia.data()! as Map<String, dynamic>;
 
-              // Extrai os dados da denúncia, fornecendo valores padrão se forem nulos
               String titulo = data['titulo'] ?? 'Sem Título';
-              String descricao = data['descricao'] ?? 'Sem Descrição';
               String statusString = data['status'] ?? 'Desconhecido';
-              String tipoDenuncia = data['tipoDenuncia'] ?? 'Não especificado';
-              String? imagemUrl =
-                  data['imagemUrl']; // **IMAGEMURL: Aqui a variável está correta.**
-              Timestamp? timestamp = data['data'] as Timestamp?;
-              String dataFormatada =
-                  timestamp != null
-                      ? DateFormat('dd/MM/yyyy HH:mm').format(
-                        timestamp.toDate(),
-                      ) // Formata a data
-                      : 'Data desconhecida';
+              String? imagemUrl = data['imagemUrl'];
 
-              // Tratamento de localização (opcional, pode ser exibido de forma mais amigável)
-              Map<String, dynamic>? localizacaoData = data['localizacao'];
-              String localizacaoStr = 'Não informada';
-              if (localizacaoData != null) {
-                double latitude = localizacaoData['latitude'];
-                double longitude = localizacaoData['longitude'];
-                localizacaoStr =
-                    'Lat: ${latitude.toStringAsFixed(4)}, Long: ${longitude.toStringAsFixed(4)}';
-              }
-
-              // Chamar fromString a partir da extensão, não diretamente do enum.
               DenunciaStatus currentDenunciaStatus =
                   DenunciaStatusExtension.fromString(statusString);
 
@@ -326,7 +294,7 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Título da Denúncia (na parte mais superior do card)
+                      // Título da Denúncia (parte mais superior)
                       Text(
                         titulo,
                         style: const TextStyle(
@@ -334,26 +302,23 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                         overflow: TextOverflow.ellipsis,
-                        maxLines: 2,
+                        maxLines: 1, // Limita o título a uma linha
                       ),
-                      const SizedBox(height: 8),
-
-                      // Conteúdo principal: Imagem à Esquerda, Detalhes e Status à Direita
+                      const SizedBox(height: 12), // Espaço após o título
+                      // Imagem à esquerda e Timeline de Status à direita
                       Row(
                         crossAxisAlignment:
                             CrossAxisAlignment
-                                .start, // Alinha itens ao topo da Row
+                                .center, // Centraliza verticalmente os itens da linha
                         children: [
                           // Imagem à esquerda (reduzida)
-                          if (imagemUrl != null &&
-                              imagemUrl
-                                  .isNotEmpty) // **IMAGEMURL: Correção aqui**
+                          if (imagemUrl != null && imagemUrl.isNotEmpty)
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8.0),
                               child: Image.network(
-                                imagemUrl, // **IMAGEMURL: Correção aqui**
-                                height: 100, // Imagem reduzida
-                                width: 100, // Imagem reduzida
+                                imagemUrl,
+                                height: 80, // Tamanho reduzido
+                                width: 80, // Tamanho reduzido
                                 fit: BoxFit.cover,
                                 loadingBuilder: (
                                   context,
@@ -362,8 +327,8 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
                                 ) {
                                   if (loadingProgress == null) return child;
                                   return Container(
-                                    height: 100,
-                                    width: 100,
+                                    height: 80,
+                                    width: 80,
                                     color: Colors.grey[200],
                                     child: Center(
                                       child: CircularProgressIndicator(
@@ -383,14 +348,14 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
                                 },
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
-                                    height: 100,
-                                    width: 100,
+                                    height: 80,
+                                    width: 80,
                                     color: Colors.grey[300],
                                     child: const Center(
                                       child: Icon(
                                         Icons.broken_image,
                                         color: Colors.grey,
-                                        size: 50,
+                                        size: 40,
                                       ),
                                     ),
                                   );
@@ -400,78 +365,22 @@ class _StatusDenunciaScreenState extends State<StatusDenunciaScreen> {
                           if (imagemUrl != null && imagemUrl.isNotEmpty)
                             const SizedBox(
                               width: 16,
-                            ), // Espaço entre imagem e texto/status
-                          // Detalhes e Status Chip (à direita da imagem)
+                            ), // Espaço entre imagem e timeline
+                          // Timeline de Status (lado direito da imagem)
                           Expanded(
-                            // Ocupa o restante do espaço horizontal
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Tipo de Denúncia e Status Chip na mesma linha
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Tipo: $tipoDenuncia',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    // Selo de status (chip) - à direita
-                                    Chip(
-                                      label: Text(
-                                        currentDenunciaStatus.name,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      backgroundColor:
-                                          currentDenunciaStatus.color,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  dataFormatada, // Data/Hora da denúncia
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  descricao,
-                                  style: const TextStyle(fontSize: 15),
-                                  maxLines: 4, // Limita a descrição
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Localização: $localizacaoStr',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                              ],
+                            // Garante que a timeline ocupe o espaço restante
+                            child: DenunciaStatusTimeline(
+                              currentStatus: currentDenunciaStatus,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      const Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Colors.grey,
-                      ), // Divisor visual
-                      // Timeline de Status (parte inferior do card)
-                      DenunciaStatusTimeline(
-                        currentStatus: currentDenunciaStatus,
-                      ),
+                      // Remover espaços extras se a imagem não existir
+                      if (imagemUrl == null || imagemUrl.isEmpty)
+                        const SizedBox(height: 8),
+
+                      // Sem descrição, tipo, data formatada, localização explicitamente aqui para simplificar
+                      // Eles já foram removidos do _buildDenunciaCard
                     ],
                   ),
                 ),
