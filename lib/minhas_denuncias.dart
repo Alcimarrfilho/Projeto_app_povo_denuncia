@@ -1,11 +1,11 @@
-import 'dart:io'; // Para manipulação de arquivos de imagem
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart'; // Para upload e exclusão de imagens
-import 'package:image_picker/image_picker.dart'; // Para selecionar/tirar fotos
-import 'package:geolocator/geolocator.dart'; // Para obter localização GPS
-import 'package:google_maps_flutter/google_maps_flutter.dart'; // Para o mapa
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:developer'; // Importado para usar 'log'
 
 class MinhasDenuncias extends StatefulWidget {
   const MinhasDenuncias({super.key});
@@ -16,32 +16,20 @@ class MinhasDenuncias extends StatefulWidget {
 
 class _MinhasDenunciasState extends State<MinhasDenuncias> {
   final _formKey = GlobalKey<FormState>();
-  final _tituloController = TextEditingController();
   final _descricaoController = TextEditingController();
 
-  DocumentSnapshot?
-  _denunciaOriginal; // Armazena a denúncia original para edição
-  String? _tipoDenunciaSelecionado;
-  File? _imagemNova; // Nova imagem selecionada (substitui a antiga)
-  String? _imagemUrlExistente; // URL da imagem já existente na denúncia
+  DocumentSnapshot? _denunciaOriginal;
+  File? _imagemNova;
+  String? _imagemUrlExistente;
 
-  LatLng? _localizacaoSelecionadaNoMapa; // Posição final selecionada no mapa
-  GoogleMapController? _mapController; // Controlador do mapa
-  bool _mostrarMapa = false; // Controle de visibilidade do mapa
-  Set<Marker> _marcadores = {}; // Conjunto de marcadores no mapa
-
-  final List<String> _tiposDenuncia = [
-    'Abandono',
-    'Buraco',
-    'Poluição',
-    'Estupro',
-    'Outros',
-  ];
+  LatLng? _localizacaoSelecionadaNoMapa;
+  GoogleMapController? _mapController;
+  bool _mostrarMapa = false;
+  final Set<Marker> _marcadores = {};
 
   @override
   void initState() {
     super.initState();
-    // Preenche os controladores quando a denúncia original é carregada
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _carregarDadosDenuncia();
     });
@@ -49,22 +37,18 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
 
   @override
   void dispose() {
-    _tituloController.dispose();
     _descricaoController.dispose();
     _mapController?.dispose();
     super.dispose();
   }
 
-  // Carrega os dados da denúncia passada como argumento
   void _carregarDadosDenuncia() {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is DocumentSnapshot) {
       _denunciaOriginal = args;
       final data = _denunciaOriginal!.data() as Map<String, dynamic>;
 
-      _tituloController.text = data['titulo'] ?? '';
       _descricaoController.text = data['descricao'] ?? '';
-      _tipoDenunciaSelecionado = data['tipoDenuncia'];
       _imagemUrlExistente = data['imagemUrl'];
 
       if (data['localizacao'] != null &&
@@ -74,17 +58,14 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
           data['localizacao']['latitude'],
           data['localizacao']['longitude'],
         );
-        // Adiciona o marcador inicial se a localização já existir
         _adicionarMarcador(_localizacaoSelecionadaNoMapa!);
       }
-      setState(() {}); // Atualiza a UI com os dados carregados
+      setState(() {});
     }
   }
 
-  // Função chamada quando o mapa é criado
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
-    // Se já tiver uma localização inicial, move a câmera para ela
     if (_localizacaoSelecionadaNoMapa != null) {
       _mapController!.animateCamera(
         CameraUpdate.newLatLng(_localizacaoSelecionadaNoMapa!),
@@ -92,7 +73,6 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
     }
   }
 
-  // Adiciona ou move o marcador no mapa
   void _adicionarMarcador(LatLng position) {
     setState(() {
       _marcadores.clear();
@@ -100,7 +80,7 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
         Marker(
           markerId: const MarkerId('denunciaLocation'),
           position: position,
-          draggable: true, // Permite arrastar o marcador
+          draggable: true,
           onDragEnd: (newPosition) {
             setState(() {
               _localizacaoSelecionadaNoMapa = newPosition;
@@ -114,18 +94,20 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
           },
         ),
       );
-      _localizacaoSelecionadaNoMapa =
-          position; // Atualiza a localização selecionada
+      _localizacaoSelecionadaNoMapa = position;
     });
   }
 
-  // Obtém a localização atual do GPS e exibe o mapa
   Future<void> _pegarLocalizacaoAtualEExibirMapa() async {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ative a localização no dispositivo')),
       );
@@ -135,11 +117,15 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -155,41 +141,42 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _localizacaoSelecionadaNoMapa = LatLng(
           position.latitude,
           position.longitude,
         );
-        _mostrarMapa = true; // Exibe o mapa
+        _mostrarMapa = true;
       });
       if (_mapController != null) {
         _mapController!.animateCamera(
           CameraUpdate.newLatLng(_localizacaoSelecionadaNoMapa!),
         );
       }
-      _adicionarMarcador(
-        _localizacaoSelecionadaNoMapa!,
-      ); // Adiciona marcador na localização atual
+      _adicionarMarcador(_localizacaoSelecionadaNoMapa!);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Localização obtida. Arraste o marcador para ajustar!'),
         ),
       );
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao obter localização: ${e.toString()}')),
       );
-      print('Erro ao obter localização: $e');
+      log('Erro ao obter localização: $e'); // Usando log
     }
   }
 
-  // Função para confirmar a localização selecionada no mapa
   void _confirmarLocalizacaoNoMapa() {
     if (_localizacaoSelecionadaNoMapa != null) {
       setState(() {
-        _mostrarMapa = false; // Esconde o mapa após a confirmação
+        _mostrarMapa = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -207,7 +194,6 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
     }
   }
 
-  // Tira uma nova foto
   Future<void> _tirarFoto() async {
     final picker = ImagePicker();
     final XFile? foto = await picker.pickImage(source: ImageSource.camera);
@@ -215,41 +201,31 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
     if (foto != null) {
       setState(() {
         _imagemNova = File(foto.path);
-        _imagemUrlExistente =
-            null; // Remove a URL existente se uma nova foto for tirada
+        _imagemUrlExistente = null;
       });
     }
   }
 
-  // Remove a imagem atual
   void _removerImagem() {
     setState(() {
       _imagemNova = null;
-      _imagemUrlExistente = null; // Limpa a URL da imagem existente
+      _imagemUrlExistente = null;
     });
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Imagem removida!')));
   }
 
-  // Função para salvar as edições na denúncia
   Future<void> _salvarEdicao() async {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     if (_formKey.currentState!.validate()) {
-      if (_tipoDenunciaSelecionado == null ||
-          _tipoDenunciaSelecionado!.isEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Por favor, selecione o tipo de denúncia.'),
-          ),
-        );
-        return;
-      }
-
       if (_localizacaoSelecionadaNoMapa == null) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Por favor, selecione a localização no mapa.'),
@@ -259,76 +235,68 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
       }
 
       try {
-        String? newImageUrl =
-            _imagemUrlExistente; // Mantém a URL existente por padrão
+        String? newImageUrl = _imagemUrlExistente;
 
-        // Se houver uma nova imagem, faz upload e atualiza a URL
         if (_imagemNova != null) {
           final ref = FirebaseStorage.instance.ref(
             'denuncias/${DateTime.now().millisecondsSinceEpoch}.jpg',
           );
-          await ref.putFile(
-            _imagemNova!,
-          ); // CORRIGIDO AQUI: _imagem! para _imagemNova!
+          await ref.putFile(_imagemNova!);
           newImageUrl = await ref.getDownloadURL();
 
-          // Opcional: Se havia uma imagem existente e uma nova foi adicionada, exclua a antiga
           if (_imagemUrlExistente != null && _imagemUrlExistente!.isNotEmpty) {
             try {
               await FirebaseStorage.instance
                   .refFromURL(_imagemUrlExistente!)
                   .delete();
             } catch (e) {
-              print('Erro ao excluir imagem antiga do Storage: $e');
+              log('Erro ao excluir imagem antiga do Storage: $e'); // Usando log
             }
           }
-        } else if (_imagemUrlExistente == null) {
-          // Se não há nova imagem e a URL existente foi removida (botão "Remover Imagem")
+        } else if (_imagemUrlExistente == null &&
+            _denunciaOriginal != null &&
+            _denunciaOriginal!['imagemUrl'] != null &&
+            (_denunciaOriginal!['imagemUrl'] as String).isNotEmpty) {
           newImageUrl = null;
-          // Opcional: Excluir a imagem do Storage se ela existia e foi removida na UI
-          if (_denunciaOriginal != null &&
-              _denunciaOriginal!['imagemUrl'] != null &&
-              (_denunciaOriginal!['imagemUrl'] as String).isNotEmpty) {
-            try {
-              await FirebaseStorage.instance
-                  .refFromURL(_denunciaOriginal!['imagemUrl'])
-                  .delete();
-            } catch (e) {
-              print(
-                'Erro ao excluir imagem do Storage após remoção no formulário: $e',
-              );
-            }
+          try {
+            await FirebaseStorage.instance
+                .refFromURL(_denunciaOriginal!['imagemUrl'])
+                .delete();
+          } catch (e) {
+            log(
+              'Erro ao excluir imagem do Storage após remoção no formulário: $e',
+            ); // Usando log
           }
         }
 
-        // Atualiza a denúncia no Firestore
         await FirebaseFirestore.instance
             .collection('denuncias')
             .doc(_denunciaOriginal!.id)
             .update({
-              'titulo': _tituloController.text.trim(),
               'descricao': _descricaoController.text.trim(),
-              'tipoDenuncia': _tipoDenunciaSelecionado,
-              'imagemUrl': newImageUrl, // Salva a nova URL ou null
+              'imagemUrl': newImageUrl,
               'localizacao': {
                 'latitude': _localizacaoSelecionadaNoMapa!.latitude,
                 'longitude': _localizacaoSelecionadaNoMapa!.longitude,
               },
-              'dataAtualizacao':
-                  FieldValue.serverTimestamp(), // Adiciona um timestamp de atualização
+              'dataAtualizacao': FieldValue.serverTimestamp(),
             });
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Denúncia atualizada com sucesso!'),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Volta para a tela anterior (feed)
+        Navigator.pop(context);
       } catch (e) {
-        if (!mounted) return;
-        print('Erro ao atualizar denúncia no Firebase: $e');
+        if (!mounted) {
+          return;
+        }
+        log('Erro ao atualizar denúncia no Firebase: $e'); // Usando log
         String errorMessage = 'Erro ao atualizar denúncia.';
 
         if (e is FirebaseException) {
@@ -376,45 +344,6 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextFormField(
-                controller: _tituloController,
-                decoration: const InputDecoration(labelText: 'Título'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Digite um título';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _tipoDenunciaSelecionado,
-                decoration: const InputDecoration(
-                  labelText: 'Sobre (Tipo de Denúncia)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.category),
-                ),
-                hint: const Text('Selecione o tipo de denúncia'),
-                items:
-                    _tiposDenuncia.map((String tipo) {
-                      return DropdownMenuItem<String>(
-                        value: tipo,
-                        child: Text(tipo),
-                      );
-                    }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _tipoDenunciaSelecionado = newValue;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, selecione o tipo de denúncia';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
                 controller: _descricaoController,
                 decoration: const InputDecoration(labelText: 'Descrição'),
                 maxLines: 4,
@@ -426,7 +355,6 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
                 },
               ),
               const SizedBox(height: 16),
-              // Exibição e botões para Imagem
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -473,7 +401,6 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
                   },
                 ),
               const SizedBox(height: 16),
-              // Botão para obter localização e exibir/atualizar o mapa
               ElevatedButton.icon(
                 onPressed: _pegarLocalizacaoAtualEExibirMapa,
                 icon: const Icon(Icons.location_on),
@@ -484,37 +411,30 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Exibe o mapa condicionalmente
               if (_mostrarMapa || _localizacaoSelecionadaNoMapa != null)
                 Column(
                   children: [
                     Container(
-                      height: 300, // Altura fixa para o mapa
+                      height: 300,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: GoogleMap(
                         onMapCreated: _onMapCreated,
-                        // Se já houver localização selecionada, usa-a como alvo inicial do mapa
                         initialCameraPosition: CameraPosition(
                           target:
                               _localizacaoSelecionadaNoMapa ??
-                              const LatLng(
-                                -2.5312,
-                                -44.2958,
-                              ), // Posição inicial (São Luís)
+                              const LatLng(-2.5312, -44.2958),
                           zoom: 15.0,
                         ),
                         markers: _marcadores,
                         myLocationEnabled: true,
                         myLocationButtonEnabled: true,
-                        onTap:
-                            _adicionarMarcador, // Permite tocar no mapa para mover o marcador
+                        onTap: _adicionarMarcador,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Exibe as coordenadas selecionadas no mapa
                     if (_localizacaoSelecionadaNoMapa != null)
                       Text(
                         'Localização Selecionada: (${_localizacaoSelecionadaNoMapa!.latitude.toStringAsFixed(5)}, ${_localizacaoSelecionadaNoMapa!.longitude.toStringAsFixed(5)})',
@@ -540,8 +460,7 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
                     child: const Text('Cancelar'),
                   ),
                   ElevatedButton(
-                    onPressed:
-                        _salvarEdicao, // Chama a função para salvar as edições
+                    onPressed: _salvarEdicao,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(255, 240, 71, 4),
                       padding: const EdgeInsets.symmetric(

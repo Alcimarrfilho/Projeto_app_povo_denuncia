@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart'; // Importe para debugPrint
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -24,7 +23,10 @@ class _FeedScreenState extends State<FeedScreen> {
         // Já está na tela principal, não faz nada
         break;
       case 1: // Buscar (Recentes / Pesquisa futura)
-        if (!mounted) return; // Adicionado check de mounted
+        if (!mounted) {
+          // Certifica-se de que o widget está montado antes de usar context
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Funcionalidade de busca em desenvolvimento!'),
@@ -51,21 +53,23 @@ class _FeedScreenState extends State<FeedScreen> {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
+          (dialogContext) => AlertDialog(
+            // Usa um BuildContext local para o AlertDialog
             title: const Text('Opções da Denúncia'),
             content: const Text('O que você deseja fazer com esta denúncia?'),
             actions: [
-              // Botão "Editar" (agora também serve para "Ver Detalhes" já que o outro foi removido)
+              // Botão "Editar"
               TextButton(
                 onPressed: () {
-                  if (!mounted)
-                    return; // ADIÇÃO: Verifica se o widget está montado
-                  Navigator.pop(context); // Fecha o AlertDialog
+                  if (!mounted) {
+                    // Verifica se o widget principal está montado
+                    return;
+                  }
+                  Navigator.pop(dialogContext); // Fecha o AlertDialog atual
                   Navigator.pushNamed(
-                    context,
-                    '/ver_editar_denuncia', // Rota unificada para ver/editar (aponta para MinhasDenuncias)
-                    arguments:
-                        denuncia, // Passa a denúncia para a tela de edição/visualização
+                    context, // Usa o BuildContext do State para navegação na árvore principal
+                    '/ver_editar_denuncia',
+                    arguments: denuncia,
                   );
                 },
                 child: const Text('Editar'),
@@ -73,17 +77,19 @@ class _FeedScreenState extends State<FeedScreen> {
               // Botão "Excluir" com confirmação
               TextButton(
                 onPressed: () async {
-                  if (!mounted)
-                    return; // ADIÇÃO: Verifica se o widget está montado antes de operações assíncronas
+                  // Não capturamos mais o context ou mounted em variáveis para esta operação,
+                  // usaremos 'mounted' diretamente antes de cada uso de 'context'.
 
                   Navigator.pop(
-                    context,
+                    dialogContext,
                   ); // Fecha o AlertDialog inicial de opções
 
                   // Diálogo de confirmação antes de excluir
                   bool? confirmDelete = await showDialog<bool>(
-                    context: context,
-                    builder: (BuildContext context) {
+                    context:
+                        context, // Usa o context original do State para o showDialog
+                    builder: (BuildContext innerDialogContext) {
+                      // Novo BuildContext para o diálogo de confirmação
                       return AlertDialog(
                         title: const Text('Confirmar Exclusão'),
                         content: const Text(
@@ -91,11 +97,15 @@ class _FeedScreenState extends State<FeedScreen> {
                         ),
                         actions: <Widget>[
                           TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
+                            onPressed:
+                                () =>
+                                    Navigator.of(innerDialogContext).pop(false),
                             child: const Text('Cancelar'),
                           ),
                           TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
+                            onPressed:
+                                () =>
+                                    Navigator.of(innerDialogContext).pop(true),
                             child: const Text(
                               'Excluir',
                               style: TextStyle(color: Colors.red),
@@ -113,25 +123,31 @@ class _FeedScreenState extends State<FeedScreen> {
                           .collection('denuncias')
                           .doc(denuncia.id)
                           .delete();
-                      // Opcional: Se a denúncia tiver imagem no Storage, você também pode excluí-la aqui.
+                      // Opcional: Se a denúncia tiver imagem no Storage, também a exclui
                       if (denuncia['imagemUrl'] != null &&
                           (denuncia['imagemUrl'] as String).isNotEmpty) {
                         await FirebaseStorage.instance
                             .refFromURL(denuncia['imagemUrl'])
                             .delete();
                       }
-                      if (!mounted)
-                        return; // ADIÇÃO (LINHA 116): Verifica se o widget está montado antes de showSnackBar
+                      // Verifique 'mounted' imediatamente antes de usar 'context'
+                      if (!mounted) {
+                        return;
+                      }
                       ScaffoldMessenger.of(context).showSnackBar(
+                        // Usando 'context' diretamente
                         const SnackBar(
                           content: Text('Denúncia excluída com sucesso!'),
                           backgroundColor: Colors.green,
                         ),
                       );
                     } catch (e) {
-                      if (!mounted)
-                        return; // ADIÇÃO (LINHA 122): Verifica se o widget está montado antes de showSnackBar
+                      // Verifique 'mounted' imediatamente antes de usar 'context'
+                      if (!mounted) {
+                        return;
+                      }
                       ScaffoldMessenger.of(context).showSnackBar(
+                        // Usando 'context' diretamente
                         SnackBar(
                           content: Text(
                             'Erro ao excluir denúncia: ${e.toString()}',
@@ -141,7 +157,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       );
                       debugPrint(
                         'Erro ao excluir denúncia: $e',
-                      ); // CORREÇÃO: Substituído print por debugPrint
+                      ); // Mantido para depuração
                     }
                   }
                 },
@@ -153,9 +169,11 @@ class _FeedScreenState extends State<FeedScreen> {
               // Botão "Cancelar"
               TextButton(
                 onPressed: () {
-                  if (!mounted)
-                    return; // ADIÇÃO: Verifica se o widget está montado
-                  Navigator.pop(context); // Apenas fecha o AlertDialog
+                  if (!mounted) {
+                    // Verifica se o widget principal está montado
+                    return;
+                  }
+                  Navigator.pop(dialogContext); // Fecha o AlertDialog atual
                 },
                 child: const Text('Cancelar'),
               ),
@@ -260,7 +278,8 @@ class _FeedScreenState extends State<FeedScreen> {
                     const SizedBox(height: 4),
                     if (dataHora != null)
                       Text(
-                        '${DateFormat('dd/MM/yyyy HH:mm').format(dataHora)}',
+                        // Correção para 'unnecessary_string_interpolations'
+                        DateFormat('dd/MM/yyyy HH:mm').format(dataHora),
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
@@ -328,7 +347,7 @@ class _FeedScreenState extends State<FeedScreen> {
           if (snapshot.hasError) {
             debugPrint(
               'Erro ao carregar denúncias: ${snapshot.error}',
-            ); // Substituído print por debugPrint
+            ); // Mantido para depuração
             return Center(
               child: Text(
                 'Erro ao carregar denúncias: ${snapshot.error.toString()}',
