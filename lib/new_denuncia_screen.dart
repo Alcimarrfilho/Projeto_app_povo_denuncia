@@ -78,6 +78,7 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
             setState(() {
               _localizacaoSelecionadaNoMapa = newPosition;
             });
+            // SnackBar de "Localização do marcador atualizada!" removida anteriormente, mantida fora do escopo desta solicitação.
           },
         ),
       );
@@ -103,6 +104,12 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
 
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      // SnackBar de "Ative a localização no dispositivo"
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ative a localização no seu dispositivo.'),
+        ),
+      );
       return;
     }
 
@@ -113,11 +120,20 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
+        // SnackBar de "Permissão de localização negada..."
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Permissão de localização negada. Ative nas configurações do aplicativo.',
+            ),
+          ),
+        );
         return;
       }
     }
 
     try {
+      // Mantendo 'desiredAccuracy' conforme sua preferência.
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -139,29 +155,34 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
       _adicionarMarcador(
         LatLng(position.latitude, position.longitude),
       ); // Adiciona marcador na localização inicial
+      // SnackBar de "Localização obtida..."
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Localização obtida com sucesso!')),
+      );
     } catch (e) {
       if (!mounted) return;
+      // SnackBar de "Erro ao obter localização..."
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao obter localização: ${e.toString()}')),
+      );
     }
   }
 
-  // FUNÇÃO ALTERADA: Agora usa a API do Google Geocoding (HTTP) em vez do pacote 'geocoding'.
+  // FUNÇÃO para pesquisar um local e atualizar o mapa
   Future<void> _pesquisarLocalEAtualizarMapa(String query) async {
     if (!mounted || query.isEmpty) return;
 
-    // Codifica a query para ser usada na URL (ex: "Rua do Sol" -> "Rua%20do%20Sol").
+    // Codifica a query para ser usada na URL
     final encodedQuery = Uri.encodeComponent(query);
-    // Constrói a URL da API de Geocodificação do Google Maps.
+    // Constrói a URL da API de Geocodificação do Google Maps
     final url =
         'https://maps.googleapis.com/maps/api/geocode/json?address=$encodedQuery&key=$googleApiKey';
 
     try {
-      final response = await http.get(Uri.parse(url)); // Faz a requisição HTTP.
+      final response = await http.get(Uri.parse(url)); // Faz a requisição HTTP
 
       if (response.statusCode == 200) {
-        // Se a requisição foi bem-sucedida (código 200 OK).
-        final decodedResponse = json.decode(
-          response.body,
-        ); // Decodifica a resposta JSON.
+        final decodedResponse = json.decode(response.body);
 
         // Verifica se a API retornou status 'OK' e encontrou resultados.
         if (decodedResponse['status'] == 'OK' &&
@@ -182,9 +203,43 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
             _mapController!.animateCamera(CameraUpdate.newLatLng(newLatLng));
           }
           _adicionarMarcador(newLatLng);
-        } else {}
+          // SnackBar de "Local encontrado!"
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Local encontrado!')));
+        } else if (decodedResponse['status'] == 'ZERO_RESULTS') {
+          // Tratamento para nenhum resultado.
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            // SnackBar para ZERO_RESULTS
+            const SnackBar(
+              content: Text('Nenhum local encontrado para a pesquisa.'),
+            ),
+          );
+        } else {
+          // Tratamento para outros status de erro da API do Google.
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            // SnackBar para outros erros da API
+            SnackBar(
+              content: Text(
+                'Erro na API de Geocodificação: ${decodedResponse['status']}',
+              ),
+            ),
+          );
+        }
+      } else {
+        // Tratamento para erros de conexão HTTP (status code diferente de 200).
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          // SnackBar para erro de conexão HTTP
+          SnackBar(
+            content: Text('Erro de conexão com a API: ${response.statusCode}'),
+          ),
+        );
       }
     } catch (e) {
+      // Captura erros gerais na requisição (ex: sem internet).
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -200,10 +255,20 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
       setState(() {
         _mostrarMapa = false; // Esconde o mapa após a confirmação
       });
+      // SnackBar de "Localização confirmada!"
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Localização confirmada!'),
           backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nenhuma localização selecionada no mapa para confirmar.',
+          ),
         ),
       );
     }
@@ -215,7 +280,14 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
     if (_formKey.currentState!.validate()) {
       // Validação para o tipo de denúncia
       if (_tipoDenunciaSelecionado == null ||
-          _tipoDenunciaSelecionado!.isEmpty) {}
+          _tipoDenunciaSelecionado!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor, selecione o tipo de denúncia.'),
+          ),
+        );
+        return;
+      }
 
       // Obter o usuário atual
       final user = FirebaseAuth.instance.currentUser;
@@ -234,6 +306,14 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
       // Ultima validação final da localização
       if (_localizacaoSelecionadaNoMapa == null) {
         if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Por favor, obtenha e selecione a localização no mapa.',
+            ),
+          ),
+        );
+        return;
       }
 
       try {
@@ -268,6 +348,9 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
         Navigator.pushReplacementNamed(context, '/feed');
       } catch (e) {
         if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao enviar denúncia: ${e.toString()}')),
+        );
       }
     }
   }
@@ -370,6 +453,9 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
                 onChanged: (value) {
                   setState(() {});
                 },
+                onFieldSubmitted: (value) {
+                  _pesquisarLocalEAtualizarMapa(value);
+                },
               ),
               const SizedBox(height: 16),
 
@@ -384,7 +470,7 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
               ElevatedButton.icon(
                 onPressed: _pegarLocalizacaoEExibirMapa,
                 icon: const Icon(Icons.location_on),
-                label: const Text('Usar localização atual'),
+                label: const Text('Usar Localização Atual'),
               ),
               const SizedBox(height: 16),
 
@@ -392,13 +478,12 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
                 Column(
                   children: [
                     Container(
-                      height: 300, // Altura que o mapa ocupa
+                      height: 300,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: GoogleMap(
-                        // O widget do GoogleMap
                         onMapCreated: _onMapCreated,
                         initialCameraPosition: CameraPosition(
                           target:
@@ -407,10 +492,7 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
                                     _localizacaoAtual!.latitude,
                                     _localizacaoAtual!.longitude,
                                   )
-                                  : const LatLng(
-                                    -5.0934,
-                                    -42.8037,
-                                  ), // coordenas de Teresina
+                                  : const LatLng(-5.0934, -42.8037),
                           zoom: 16.0,
                         ),
                         markers: _marcadores,
@@ -420,14 +502,12 @@ class _NewDenunciaScreenState extends State<NewDenunciaScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Exibe as coordenadas selecionadas no mapa
                     if (_localizacaoSelecionadaNoMapa != null)
                       Text(
                         'Localização Selecionada: (${_localizacaoSelecionadaNoMapa!.latitude.toStringAsFixed(5)}, ${_localizacaoSelecionadaNoMapa!.longitude.toStringAsFixed(5)})',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     const SizedBox(height: 16),
-                    // Botão para confirmar a localização selecionada no mapa
                     ElevatedButton(
                       onPressed: _confirmarLocalizacaoNoMapa,
                       style: ElevatedButton.styleFrom(

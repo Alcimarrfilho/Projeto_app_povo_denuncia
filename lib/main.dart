@@ -26,7 +26,9 @@ class MyApp extends StatelessWidget {
       title: 'Meu App de Denúncias',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 88, 90, 230),
+        ),
         useMaterial3: true,
       ),
       home: StreamBuilder<User?>(

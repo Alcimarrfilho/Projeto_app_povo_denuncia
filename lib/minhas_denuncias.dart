@@ -265,7 +265,7 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
           } catch (e) {
             log(
               'Erro ao excluir imagem do Storage após remoção no formulário: $e',
-            ); // Usando log
+            );
           }
         }
 
