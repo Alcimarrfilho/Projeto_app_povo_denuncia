@@ -108,10 +108,6 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ative a localização no dispositivo')),
-      );
-      return;
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
@@ -126,14 +122,6 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Permissão de localização negada. Não foi possível obter a localização.',
-            ),
-          ),
-        );
-        return;
       }
     }
 
@@ -157,11 +145,6 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
         );
       }
       _adicionarMarcador(_localizacaoSelecionadaNoMapa!);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Localização obtida. Arraste o marcador para ajustar!'),
-        ),
-      );
     } catch (e) {
       if (!mounted) {
         return;
@@ -226,12 +209,6 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Por favor, selecione a localização no mapa.'),
-          ),
-        );
-        return;
       }
 
       try {
@@ -297,22 +274,6 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
           return;
         }
         log('Erro ao atualizar denúncia no Firebase: $e'); // Usando log
-        String errorMessage = 'Erro ao atualizar denúncia.';
-
-        if (e is FirebaseException) {
-          if (e.code == 'permission-denied') {
-            errorMessage =
-                'Permissão negada. Verifique as regras de segurança do Firebase.';
-          } else {
-            errorMessage = 'Erro do Firebase: ${e.message}';
-          }
-        } else {
-          errorMessage = 'Ocorreu um erro inesperado: ${e.toString()}';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
-        );
       }
     }
   }
@@ -363,17 +324,16 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('Tirar Nova Foto'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
+                      backgroundColor: const Color.fromRGBO(177, 200, 241, 1),
                       foregroundColor: Colors.white,
                     ),
                   ),
                   if (_imagemNova != null || _imagemUrlExistente != null)
                     ElevatedButton.icon(
                       onPressed: _removerImagem,
-                      icon: const Icon(Icons.delete_forever),
                       label: const Text('Remover Imagem'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
+                        backgroundColor: const Color.fromRGBO(177, 200, 241, 1),
                         foregroundColor: Colors.white,
                       ),
                     ),
@@ -406,7 +366,7 @@ class _MinhasDenunciasState extends State<MinhasDenuncias> {
                 icon: const Icon(Icons.location_on),
                 label: const Text('Obter Localização Atual e Usar no Mapa'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrangeAccent,
+                  backgroundColor: const Color.fromARGB(255, 64, 67, 255),
                   foregroundColor: Colors.white,
                 ),
               ),
